@@ -488,6 +488,12 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      <div className="mt-8 mb-4 text-center">
+        <p className="text-sm text-slate-500 font-medium tracking-wide">
+          Phát triển hệ thống bởi Tòng Minh Khánh
+        </p>
+      </div>
     </div>
   );
 }
