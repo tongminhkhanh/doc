@@ -3,14 +3,13 @@ import * as XLSX from 'xlsx';
 import { Play, Square, Mic, Upload, FileSpreadsheet, AlertCircle, Volume2 } from 'lucide-react';
 
 interface RowData {
-  stt: string | number;
-  hoTen: string;
-  ngaySinh: string;
   _original: any;
+  [key: string]: any;
 }
 
 export default function App() {
   const [data, setData] = useState<RowData[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
   const [speechRate, setSpeechRate] = useState<number>(1.0);
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
@@ -133,28 +132,26 @@ export default function App() {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const jsonData = XLSX.utils.sheet_to_json(ws);
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { raw: false, defval: '' });
 
-        const mappedData: RowData[] = jsonData.map((row: any, index) => {
-          const keys = Object.keys(row);
-          const sttKey = keys.find(k => k.toLowerCase().includes('stt') || k.toLowerCase().includes('thứ tự')) || keys[0];
-          const nameKey = keys.find(k => k.toLowerCase().includes('tên') || k.toLowerCase().includes('họ')) || keys[1];
-          const dobKey = keys.find(k => k.toLowerCase().includes('ngày') || k.toLowerCase().includes('sinh') || k.toLowerCase().includes('dob')) || keys[2];
+        if (jsonData.length === 0) {
+          setError('File Excel trống.');
+          return;
+        }
 
-          let dob = row[dobKey] || '';
-          if (typeof dob === 'number') {
-            const date = new Date(Math.round((dob - 25569) * 86400 * 1000));
-            dob = date.toLocaleDateString('vi-VN');
-          }
+        // Trích xuất danh sách cột từ hàng đầu tiên
+        // Lọc bỏ cột '__EMPTY' do sheet_to_json sinh ra cho cột rỗng
+        const extractedColumns = Object.keys(jsonData[0]).filter(key => !key.startsWith('__EMPTY'));
 
-          return {
-            stt: row[sttKey] || (index + 1),
-            hoTen: row[nameKey] || '',
-            ngaySinh: dob,
-            _original: row
-          };
+        const mappedData: RowData[] = jsonData.map((row: any) => {
+          const newRow: RowData = { _original: row };
+          extractedColumns.forEach(col => {
+            newRow[col] = row[col] || '';
+          });
+          return newRow;
         });
 
+        setColumns(extractedColumns);
         setData(mappedData);
         setCurrentIndex(-1);
         setStatus('idle');
@@ -223,7 +220,12 @@ export default function App() {
     }
 
     const row = currentData[index];
-    const textToSpeak = `Số thứ tự ${row.stt}. Họ và tên: ${row.hoTen}. Ngày sinh: ${row.ngaySinh}.`;
+    const textParts = columns.map(col => {
+      const value = row[col];
+      return value ? `${col}: ${value}` : '';
+    }).filter(part => part !== '');
+
+    const textToSpeak = textParts.join('. ');
 
     speak(textToSpeak, () => {
       console.log('[Flow] 🎤 Đọc xong, chuyển sang lắng nghe micro...');
@@ -324,11 +326,16 @@ export default function App() {
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-200 w-20">STT</th>
-                      <th className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-200">Họ và tên</th>
-                      <th className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-200">Ngày sinh</th>
+                      <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">
+                        <span>Lệnh</span>
+                      </th>
+                      {columns.map((col, idx) => (
+                        <th key={idx} className="p-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          {col}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -360,11 +367,13 @@ export default function App() {
                                 <Play size={14} />
                               )}
                             </button>
-                            <span>{row.stt}</span>
                           </div>
                         </td>
-                        <td className="p-3 text-sm text-slate-800">{row.hoTen}</td>
-                        <td className="p-3 text-sm text-slate-600">{row.ngaySinh}</td>
+                        {columns.map((col, colIdx) => (
+                          <td key={colIdx} className="p-3 text-sm text-slate-800">
+                            {row[col]}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
