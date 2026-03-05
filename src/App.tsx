@@ -63,7 +63,7 @@ export default function App() {
 
           const lowerTranscript = currentTranscript.toLowerCase().trim();
 
-          // Danh sách từ trigger mở rộng (Vietnamese Speech Recognition)
+          // Danh sách từ trigger tiếp tục
           const triggerWords = [
             'ok', 'oke', 'ô kê', 'ôkê', 'okey', 'okay',
             'tiếp', 'tiếp tục', 'tiep',
@@ -74,10 +74,22 @@ export default function App() {
             'được', 'xong'
           ];
 
-          const shouldContinue = triggerWords.some(word => lowerTranscript.includes(word));
+          // Danh sách từ trigger đọc lại
+          const retryWords = [
+            'đọc lại', 'doc lai', 'lại', 'lai', 'again', 'nhắc lại', 'nhac lai'
+          ];
 
-          if (shouldContinue) {
-            console.log('[Speech] ✅ Trigger matched! Chuyển dòng tiếp theo...');
+          const shouldContinue = triggerWords.some(word => lowerTranscript.includes(word));
+          const shouldRetry = retryWords.some(word => lowerTranscript.includes(word));
+
+          if (shouldRetry) {
+            console.log('[Speech] 🔄 Lệnh Đọc lại! Đang phát lại dòng hiện tại...');
+            recognition.stop();
+            if (statusRef.current === 'listening') {
+              readRow(currentIndexRef.current);
+            }
+          } else if (shouldContinue) {
+            console.log('[Speech] ✅ Lệnh Tiếp tục! Chuyển dòng tiếp theo...');
             recognition.stop();
             if (statusRef.current === 'listening') {
               readRow(currentIndexRef.current + 1);
