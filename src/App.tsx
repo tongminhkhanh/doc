@@ -222,10 +222,12 @@ export default function App() {
     const row = currentData[index];
     const textParts = columns.map(col => {
       const value = row[col];
-      return value ? `${col}: ${value}` : '';
+      // Dùng dấu phẩy ngắt nhẹ sau tên cột
+      // Dùng chuỗi dấu câu '. . .' sau khi đọc xong nội dung 1 cột để tạo thời gian nghỉ (pause) khá dài
+      return value ? `${col}, ${value}. . .` : '';
     }).filter(part => part !== '');
 
-    const textToSpeak = textParts.join('. ');
+    const textToSpeak = textParts.join(' ');
 
     speak(textToSpeak, () => {
       console.log('[Flow] 🎤 Đọc xong, chuyển sang lắng nghe micro...');
