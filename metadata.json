@@ -1,0 +1,7 @@
+{
+  "name": "Excel Reader & Voice Controller",
+  "description": "Reads Excel rows and waits for voice command 'oke' to proceed.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
