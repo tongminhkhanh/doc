@@ -38,17 +38,11 @@ export default function App() {
   }, [data]);
 
   useEffect(() => {
-    // Sử dụng list voice mặc định của OpenAI tương thích
-    const openAIVoices = [
-      { name: 'alloy', ssmlGender: 'Neutral' },
-      { name: 'echo', ssmlGender: 'Male' },
-      { name: 'fable', ssmlGender: 'Male' },
-      { name: 'onyx', ssmlGender: 'Male' },
-      { name: 'nova', ssmlGender: 'Female' },
-      { name: 'shimmer', ssmlGender: 'Female' }
-    ];
-    setAvailableVoices(openAIVoices);
-    setSelectedVoice('alloy');
+    // Fetch Google Cloud TTS voices
+    fetch('/api/voices')
+      .then(res => res.json())
+      .then(voices => setAvailableVoices(voices))
+      .catch(err => console.error('Failed to fetch voices', err));
 
     // Speech Recognition
     if (typeof window !== 'undefined') {
@@ -145,19 +139,12 @@ export default function App() {
 
   const speak = async (text: string, onEnd: () => void) => {
     try {
-      const apiUrl = import.meta.env.VITE_CLIPROXY_API || 'https://api.thitong.site/v1';
-      const apiToken = import.meta.env.VITE_CLIPROXY_TOKEN || 'sk-khanh20111989tom@';
-
-      const response = await fetch(`${apiUrl}/audio/speech`, {
+      const response = await fetch('/api/tts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: "tts-1",
-          input: text,
-          voice: selectedVoice || "alloy"
+          text,
+          voiceName: selectedVoice,
         }),
       });
 
@@ -307,8 +294,8 @@ export default function App() {
                           }
                         }}
                         className={`border-b border-slate-100 transition-colors ${status === 'idle' ? 'cursor-pointer' : ''} ${idx === currentIndex
-                          ? 'bg-emerald-50 border-emerald-200'
-                          : 'hover:bg-slate-50'
+                            ? 'bg-emerald-50 border-emerald-200'
+                            : 'hover:bg-slate-50'
                           }`}
                       >
                         <td className="p-3 text-sm font-medium text-slate-700">
@@ -332,7 +319,7 @@ export default function App() {
               <div className="flex flex-col gap-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <label className="text-slate-600">Giọng đọc (OpenAI TTS)</label>
+                    <label className="text-slate-600">Giọng đọc (Edge TTS)</label>
                   </div>
                   <select
                     value={selectedVoice}
@@ -399,8 +386,8 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${status === 'idle' ? 'bg-slate-300' :
-                    status === 'reading' ? 'bg-blue-500 animate-pulse' :
-                      'bg-emerald-500 animate-pulse'
+                      status === 'reading' ? 'bg-blue-500 animate-pulse' :
+                        'bg-emerald-500 animate-pulse'
                     }`} />
                   <span className="font-medium text-slate-700">
                     {status === 'idle' ? 'Đang chờ' :
