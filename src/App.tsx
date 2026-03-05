@@ -222,12 +222,16 @@ export default function App() {
     const row = currentData[index];
     const textParts = columns.map(col => {
       const value = row[col];
-      // Dùng dấu phẩy ngắt nhẹ sau tên cột
-      // Dùng chuỗi dấu câu '. . .' sau khi đọc xong nội dung 1 cột để tạo thời gian nghỉ (pause) khá dài
-      return value ? `${col}, ${value}. . .` : '';
+      // Dùng chuỗi '. . .' sau tên cột và sau giá trị để tạo độ trễ (pause) ngắt nhịp
+      return value ? `${col}. . . ${value}. . . ` : '';
     }).filter(part => part !== '');
 
-    const textToSpeak = textParts.join(' ');
+    let textToSpeak = textParts.join(' ');
+
+    // Sửa lỗi 400 Bad Request trên Vercel khi dòng không có dữ liệu dẫn đến text rỗng
+    if (!textToSpeak.trim()) {
+      textToSpeak = 'Dữ liệu trống.';
+    }
 
     speak(textToSpeak, () => {
       console.log('[Flow] 🎤 Đọc xong, chuyển sang lắng nghe micro...');
