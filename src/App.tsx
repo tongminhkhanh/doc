@@ -41,7 +41,7 @@ export default function App() {
     // Fetch Google Cloud TTS voices
     fetch('/api/voices')
       .then(res => res.json())
-      .then(voices => setAvailableVoices(voices.filter((v: any) => v.languageCodes.includes('vi-VN'))))
+      .then(voices => setAvailableVoices(voices))
       .catch(err => console.error('Failed to fetch voices', err));
 
     // Speech Recognition
@@ -52,19 +52,19 @@ export default function App() {
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'vi-VN';
-        
+
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             currentTranscript += event.results[i][0].transcript;
           }
           setTranscript(currentTranscript);
-          
+
           const lowerTranscript = currentTranscript.toLowerCase();
           if (
-            lowerTranscript.includes('ok') || 
-            lowerTranscript.includes('oke') || 
-            lowerTranscript.includes('ô kê') || 
+            lowerTranscript.includes('ok') ||
+            lowerTranscript.includes('oke') ||
+            lowerTranscript.includes('ô kê') ||
             lowerTranscript.includes('tiếp') ||
             lowerTranscript.includes('rồi')
           ) {
@@ -81,14 +81,14 @@ export default function App() {
 
         recognition.onend = () => {
           if (statusRef.current === 'listening') {
-            try { recognition.start(); } catch (e) {}
+            try { recognition.start(); } catch (e) { }
           }
         };
 
         recognitionRef.current = recognition;
       }
     }
-    
+
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
     };
@@ -106,13 +106,13 @@ export default function App() {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const jsonData = XLSX.utils.sheet_to_json(ws);
-        
+
         const mappedData: RowData[] = jsonData.map((row: any, index) => {
           const keys = Object.keys(row);
           const sttKey = keys.find(k => k.toLowerCase().includes('stt') || k.toLowerCase().includes('thứ tự')) || keys[0];
           const nameKey = keys.find(k => k.toLowerCase().includes('tên') || k.toLowerCase().includes('họ')) || keys[1];
           const dobKey = keys.find(k => k.toLowerCase().includes('ngày') || k.toLowerCase().includes('sinh') || k.toLowerCase().includes('dob')) || keys[2];
-          
+
           let dob = row[dobKey] || '';
           if (typeof dob === 'number') {
             const date = new Date(Math.round((dob - 25569) * 86400 * 1000));
@@ -126,7 +126,7 @@ export default function App() {
             _original: row
           };
         });
-        
+
         setData(mappedData);
         setCurrentIndex(-1);
         setStatus('idle');
@@ -142,19 +142,19 @@ export default function App() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text, 
+        body: JSON.stringify({
+          text,
           voiceName: selectedVoice,
         }),
       });
-      
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      
+
       if (!audioRef.current) {
         audioRef.current = new Audio();
       }
-      
+
       audioRef.current.src = url;
       audioRef.current.playbackRate = speechRate;
       audioRef.current.onended = onEnd;
@@ -167,29 +167,29 @@ export default function App() {
 
   const readRow = (index: number) => {
     const currentData = dataRef.current;
-    
+
     if (index >= currentData.length) {
       setStatus('idle');
       setCurrentIndex(-1);
-      speak('Đã đọc xong danh sách.', () => {});
+      speak('Đã đọc xong danh sách.', () => { });
       return;
     }
-    
+
     setCurrentIndex(index);
     setStatus('reading');
     setTranscript('');
-    
+
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) { }
     }
-    
+
     const row = currentData[index];
     const textToSpeak = `Số thứ tự ${row.stt}. Họ và tên: ${row.hoTen}. Ngày sinh: ${row.ngaySinh}.`;
-    
+
     speak(textToSpeak, () => {
       setStatus('listening');
       if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (e) {}
+        try { recognitionRef.current.start(); } catch (e) { }
       }
     });
   };
@@ -204,7 +204,7 @@ export default function App() {
     setStatus('idle');
     if (audioRef.current) audioRef.current.pause();
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) { }
     }
   };
 
@@ -227,7 +227,7 @@ export default function App() {
               Tải lên file Excel, hệ thống sẽ đọc từng dòng và chờ bạn nói "oke" để đọc tiếp.
             </p>
           </div>
-          
+
           <div className="relative">
             <input
               type="file"
@@ -268,7 +268,7 @@ export default function App() {
                 </span>
               )}
             </div>
-            
+
             <div className="flex-1 overflow-auto p-0">
               {data.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
@@ -286,18 +286,17 @@ export default function App() {
                   </thead>
                   <tbody>
                     {data.map((row, idx) => (
-                      <tr 
-                        key={idx} 
+                      <tr
+                        key={idx}
                         onClick={() => {
                           if (status === 'idle') {
                             setCurrentIndex(idx);
                           }
                         }}
-                        className={`border-b border-slate-100 transition-colors ${status === 'idle' ? 'cursor-pointer' : ''} ${
-                          idx === currentIndex 
-                            ? 'bg-emerald-50 border-emerald-200' 
+                        className={`border-b border-slate-100 transition-colors ${status === 'idle' ? 'cursor-pointer' : ''} ${idx === currentIndex
+                            ? 'bg-emerald-50 border-emerald-200'
                             : 'hover:bg-slate-50'
-                        }`}
+                          }`}
                       >
                         <td className="p-3 text-sm font-medium text-slate-700">
                           {idx === currentIndex && <Volume2 size={16} className="inline mr-2 text-emerald-600 animate-pulse" />}
@@ -316,7 +315,7 @@ export default function App() {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <h2 className="font-semibold text-slate-800 mb-4">Điều khiển</h2>
-              
+
               <div className="flex flex-col gap-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -383,18 +382,17 @@ export default function App() {
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <h2 className="font-semibold text-slate-800 mb-4">Trạng thái hệ thống</h2>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${
-                    status === 'idle' ? 'bg-slate-300' : 
-                    status === 'reading' ? 'bg-blue-500 animate-pulse' : 
-                    'bg-emerald-500 animate-pulse'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full ${status === 'idle' ? 'bg-slate-300' :
+                      status === 'reading' ? 'bg-blue-500 animate-pulse' :
+                        'bg-emerald-500 animate-pulse'
+                    }`} />
                   <span className="font-medium text-slate-700">
-                    {status === 'idle' ? 'Đang chờ' : 
-                     status === 'reading' ? 'Đang đọc dữ liệu...' : 
-                     'Đang nghe lệnh "oke"...'}
+                    {status === 'idle' ? 'Đang chờ' :
+                      status === 'reading' ? 'Đang đọc dữ liệu...' :
+                        'Đang nghe lệnh "oke"...'}
                   </span>
                 </div>
 
