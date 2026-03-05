@@ -160,6 +160,12 @@ export default function App() {
         }),
       });
 
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current.onended = null;
+      }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
 
@@ -191,6 +197,11 @@ export default function App() {
     setStatus('reading');
     setTranscript('');
 
+    // Dừng âm thanh và micro cũ nếu đang chạy
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+    }
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (e) { }
     }
@@ -308,19 +319,33 @@ export default function App() {
                     {data.map((row, idx) => (
                       <tr
                         key={idx}
-                        onClick={() => {
-                          if (status === 'idle') {
-                            setCurrentIndex(idx);
-                          }
-                        }}
-                        className={`border-b border-slate-100 transition-colors ${status === 'idle' ? 'cursor-pointer' : ''} ${idx === currentIndex
+                        onClick={() => setCurrentIndex(idx)}
+                        className={`border-b border-slate-100 transition-colors cursor-pointer ${idx === currentIndex
                           ? 'bg-emerald-50 border-emerald-200'
                           : 'hover:bg-slate-50'
                           }`}
                       >
                         <td className="p-3 text-sm font-medium text-slate-700">
-                          {idx === currentIndex && <Volume2 size={16} className="inline mr-2 text-emerald-600 animate-pulse" />}
-                          {row.stt}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                readRow(idx);
+                              }}
+                              className={`p-1 rounded-full transition-colors ${idx === currentIndex && status !== 'idle'
+                                ? 'bg-emerald-600 text-white'
+                                : 'hover:bg-emerald-100 text-emerald-600'
+                                }`}
+                              title="Đọc từ dòng này"
+                            >
+                              {idx === currentIndex && status !== 'idle' ? (
+                                <Volume2 size={14} className="animate-pulse" />
+                              ) : (
+                                <Play size={14} />
+                              )}
+                            </button>
+                            <span>{row.stt}</span>
+                          </div>
                         </td>
                         <td className="p-3 text-sm text-slate-800">{row.hoTen}</td>
                         <td className="p-3 text-sm text-slate-600">{row.ngaySinh}</td>
