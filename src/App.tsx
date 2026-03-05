@@ -59,15 +59,25 @@ export default function App() {
             currentTranscript += event.results[i][0].transcript;
           }
           setTranscript(currentTranscript);
+          console.log('[Speech] Nghe được:', currentTranscript);
 
-          const lowerTranscript = currentTranscript.toLowerCase();
-          if (
-            lowerTranscript.includes('ok') ||
-            lowerTranscript.includes('oke') ||
-            lowerTranscript.includes('ô kê') ||
-            lowerTranscript.includes('tiếp') ||
-            lowerTranscript.includes('rồi')
-          ) {
+          const lowerTranscript = currentTranscript.toLowerCase().trim();
+
+          // Danh sách từ trigger mở rộng (Vietnamese Speech Recognition)
+          const triggerWords = [
+            'ok', 'oke', 'ô kê', 'ôkê', 'okey', 'okay',
+            'tiếp', 'tiếp tục', 'tiep',
+            'rồi', 'roi', 'được rồi',
+            'có', 'vâng', 'ừ', 'uh',
+            'next', 'yes',
+            'đọc', 'đọc tiếp', 'doc',
+            'được', 'xong'
+          ];
+
+          const shouldContinue = triggerWords.some(word => lowerTranscript.includes(word));
+
+          if (shouldContinue) {
+            console.log('[Speech] ✅ Trigger matched! Chuyển dòng tiếp theo...');
             recognition.stop();
             if (statusRef.current === 'listening') {
               readRow(currentIndexRef.current + 1);
@@ -76,12 +86,14 @@ export default function App() {
         };
 
         recognition.onerror = (event: any) => {
-          console.error('Speech recognition error', event.error);
+          console.error('[Speech] ❌ Lỗi nhận diện:', event.error);
         };
 
         recognition.onend = () => {
+          console.log('[Speech] Recognition ended. Status:', statusRef.current);
           if (statusRef.current === 'listening') {
-            try { recognition.start(); } catch (e) { }
+            console.log('[Speech] 🔄 Khởi động lại micro...');
+            try { recognition.start(); } catch (e) { console.error('[Speech] Không start lại được:', e); }
           }
         };
 
@@ -187,9 +199,17 @@ export default function App() {
     const textToSpeak = `Số thứ tự ${row.stt}. Họ và tên: ${row.hoTen}. Ngày sinh: ${row.ngaySinh}.`;
 
     speak(textToSpeak, () => {
+      console.log('[Flow] 🎤 Đọc xong, chuyển sang lắng nghe micro...');
       setStatus('listening');
       if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (e) { }
+        try {
+          recognitionRef.current.start();
+          console.log('[Flow] ✅ Micro đã bật, đang chờ lệnh...');
+        } catch (e) {
+          console.error('[Flow] ❌ Không bật được micro:', e);
+        }
+      } else {
+        console.error('[Flow] ❌ recognitionRef là null — trình duyệt không hỗ trợ Speech Recognition!');
       }
     });
   };
@@ -294,8 +314,8 @@ export default function App() {
                           }
                         }}
                         className={`border-b border-slate-100 transition-colors ${status === 'idle' ? 'cursor-pointer' : ''} ${idx === currentIndex
-                            ? 'bg-emerald-50 border-emerald-200'
-                            : 'hover:bg-slate-50'
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'hover:bg-slate-50'
                           }`}
                       >
                         <td className="p-3 text-sm font-medium text-slate-700">
@@ -386,8 +406,8 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${status === 'idle' ? 'bg-slate-300' :
-                      status === 'reading' ? 'bg-blue-500 animate-pulse' :
-                        'bg-emerald-500 animate-pulse'
+                    status === 'reading' ? 'bg-blue-500 animate-pulse' :
+                      'bg-emerald-500 animate-pulse'
                     }`} />
                   <span className="font-medium text-slate-700">
                     {status === 'idle' ? 'Đang chờ' :
