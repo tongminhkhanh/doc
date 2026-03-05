@@ -55,23 +55,27 @@ export default function App() {
 
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
+          let isFinal = false;
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             currentTranscript += event.results[i][0].transcript;
+            if (event.results[i].isFinal) isFinal = true;
           }
+
           setTranscript(currentTranscript);
-          console.log('[Speech] Nghe được:', currentTranscript);
+          console.log(`[Speech] ${isFinal ? 'Final' : 'Interim'}:`, currentTranscript);
+
+          if (!isFinal) return; // Chỉ xử lý khi đã nói xong hẳn câu
 
           const lowerTranscript = currentTranscript.toLowerCase().trim();
 
           // Danh sách từ trigger tiếp tục
           const triggerWords = [
             'ok', 'oke', 'ô kê', 'ôkê', 'okey', 'okay',
-            'tiếp', 'tiếp tục', 'tiep',
+            'tiếp tục', 'tiếp', 'tiep',
             'rồi', 'roi', 'được rồi',
             'có', 'vâng', 'ừ', 'uh',
             'next', 'yes',
-            'đọc', 'đọc tiếp', 'doc',
-            'được', 'xong'
+            'đọc tiếp', 'xong' // Bỏ từ 'đọc' đơn lẻ vì dễ nhầm với 'đọc lại'
           ];
 
           // Danh sách từ trigger đọc lại
@@ -79,8 +83,8 @@ export default function App() {
             'đọc lại', 'doc lai', 'lại', 'lai', 'again', 'nhắc lại', 'nhac lai'
           ];
 
-          const shouldContinue = triggerWords.some(word => lowerTranscript.includes(word));
           const shouldRetry = retryWords.some(word => lowerTranscript.includes(word));
+          const shouldContinue = triggerWords.some(word => lowerTranscript.includes(word));
 
           if (shouldRetry) {
             console.log('[Speech] 🔄 Lệnh Đọc lại! Đang phát lại dòng hiện tại...');
